@@ -1,0 +1,76 @@
+########################################################################################################################
+#使用下行启动爬取特定链接
+#scrapy shell "http://www.sge.com.cn/sjzx/mrhqsj/537221?top=789398439266459648"
+########################################################################################################################
+
+#使用BeautifulSoup选择器
+
+import re
+from bs4 import BeautifulSoup
+
+soup = BeautifulSoup(response.body, 'html5lib')
+
+tr_list = []
+th_list = []
+
+for row_str in soup.table.find(text=re.compile('收')).find_parent('tr').find_all(re.compile('td|th')):
+    re_str = re.sub('\s', '', row_str.get_text())
+    
+    if re_str != '' and re_str != '合约' and re_str != '品种':
+        tr_list.append(re_str)
+
+for row_str in soup.table.find(text=re.compile('Au99.99|Au9999')).find_parent('tr').find_all(re.compile('td|th')):
+    re_str = re.sub('\s', '', row_str.get_text())
+    
+    if re_str != '':
+        th_list.append(re_str)
+
+
+
+########################################################################################################################
+
+#使用列lxml选择器
+
+it_day_xp = '/html/body/div[6]/div/div[2]/div[2]/div[1]/p/span[2]/text()'
+x_axis = 0
+y_axis = 0
+it_name_xp = ['string(/html/body/div[6]/div/div[2]/div[2]/div[2]/table/tbody/tr[', 'y', ']/td[1])']
+it_price_xp = ['string(/html/body/div[6]/div/div[2]/div[2]/div[2]/table/tbody/tr[', 'y', ']/td[', 'x', '])']
+
+tr_lt_xp = [
+                'string(',
+                'count(',
+                '/html/body/div[6]/div/div[2]/div[2]/div[2]/table/tbody/tr/td[1])',
+                '/html/body/div[6]/div/div[2]/div[2]/div[2]/table/tbody/tr[',
+                ']/td[1])',
+            ]
+th_lt_xp = [
+                'string(',
+                'count(',
+                '/html/body/div[6]/div/div[2]/div[2]/div[2]/table/tbody/tr[1]/td)',
+                '/html/body/div[6]/div/div[2]/div[2]/div[2]/table/tbody/tr[1]/td[',
+                '])',
+            ]
+
+tr_len = int(float(response.selector.xpath(tr_lt_xp[1] + tr_lt_xp[2]).extract()[0]))
+th_len = int(float(response.selector.xpath(th_lt_xp[1] + th_lt_xp[2]).extract()[0]))       
+
+tr_list = []
+th_list = []
+
+for i in range(tr_len):
+    tr_list.append(response.xpath(tr_lt_xp[0] + tr_lt_xp[3] + str(i+1) + tr_lt_xp[4]).extract())
+
+for k in range(len(tr_list)):
+    tr_list[k] = re.sub('\s','',tr_list[k][0])
+
+y_axis=tr_list.index('Au9999')
+
+it_name_xp[1] = str(y_axis+1)
+it_price_xp[1] = str(y_axis+1)
+
+for i in range(th_len):
+    th_list.append(response.xpath(th_lt_xp[0] + th_lt_xp[3] + str(i+1) + th_lt_xp[4]).extract())
+
+for k in range(len(th_list)):
+    th_list[k] = re.sub('\s','',th_list[k][0])
